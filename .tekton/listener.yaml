@@ -73,9 +73,9 @@ metadata:
 spec:
   params:
     - name: repository
-      value: "https://github.com/MGsus/Tekton_Back"
+      value: "https://github.com/DianaEspitia/Team2021-Practicas-IBM-Teckton-Back"
     - name: revision
-      value: "master"
+      value: "main"
 ---
 apiVersion: tekton.dev/v1alpha1
 kind: EventListener

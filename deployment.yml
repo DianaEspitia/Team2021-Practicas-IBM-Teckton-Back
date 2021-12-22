@@ -27,7 +27,7 @@ metadata:
   labels:
     app: backend-app-service
 spec:
-  type: NodePort
+  type: LoadBalancer
   ports:
     # the port that this service should serve on
     - port: 3000

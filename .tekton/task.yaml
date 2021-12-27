@@ -3,25 +3,24 @@ kind: Task
 metadata:
   name: build-task
 spec:
-  inputs:
-    params:
-      - name: repository
-        description: the git repo
-      - name: revision
-        description: the revision
-        default: main
-      - name: apikey
-        description: the ibmcloud api key
-      - name: api
-        description: the ibmcloud api endpoint
-        default: "https://cloud.ibm.com"
-      - name: registryNamespace
-        description: the ibmcloud registry namespace
-      - name: imageName
-        description: the base image name
-        default: "backend-tekton-image"
-      - name: registryRegion
-        description: the ibmcloud registry region
+  params:
+    - name: repository
+      description: the git repo
+    - name: revision
+      description: the revision
+      default: main
+    - name: apikey
+      description: the ibmcloud api key
+    - name: api
+      description: the ibmcloud api endpoint
+      default: "https://cloud.ibm.com"
+    - name: registryNamespace
+      description: the ibmcloud registry namespace
+    - name: imageName
+      description: the base image name
+      default: "backend-tekton-image"
+    - name: registryRegion
+      description: the ibmcloud registry region
   workspaces:
   - name: task-pvc
     mountPath: /artifacts   

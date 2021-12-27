@@ -35,7 +35,7 @@ fi
 # bx cr build --help
 
 echo -e "Existing images in registry"
-bx cr images
+ibmcloud cr images
 
 # Minting image tag using format: BRANCH-BUILD_NUMBER-COMMIT_ID-TIMESTAMP
 # e.g. master-3-50da6912-20181123114435
@@ -52,16 +52,47 @@ echo "=========================================================="
 echo -e "BUILDING CONTAINER IMAGE: ${IMAGE_NAME}:${IMAGE_TAG}"
 if [ -z "${DOCKER_ROOT}" ]; then DOCKER_ROOT=. ; fi
 if [ -z "${DOCKER_FILE}" ]; then DOCKER_FILE=${DOCKER_ROOT}/Dockerfile ; fi
+if [ -z "$EXTRA_BUILD_ARGS" ]; then
+  echo -e ""
+else
+  for buildArg in $EXTRA_BUILD_ARGS; do
+    if [ "$buildArg" == "--build-arg" ]; then
+      echo -e ""
+    else      
+      BUILD_ARGS="${BUILD_ARGS} --opt build-arg:$buildArg"
+    fi
+  done
+fi
+
+# Checking if buildctl is installed
+if which buildctl > /dev/null 2>&1; then
+  buildctl --version
+else 
+  echo "Installing Buildkit builctl"
+  curl -sL https://github.com/moby/buildkit/releases/download/v0.8.1/buildkit-v0.8.1.linux-amd64.tar.gz | tar -C /tmp -xz bin/buildctl && mv /tmp/bin/buildctl /usr/bin/buildctl && rmdir --ignore-fail-on-non-empty /tmp/bin
+  buildctl --version
+fi
+
+echo "Logging into regional IBM Container Registry"
+ibmcloud cr region-set ${REGION}
+ibmcloud cr login
+
 set -x
-bx cr build -t ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/${IMAGE_NAME}:${IMAGE_TAG} ${DOCKER_ROOT} -f ${DOCKER_FILE}
+## DEPRECTATED ibmcloud cr build -t ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/${IMAGE_NAME}:${IMAGE_TAG} ${DOCKER_ROOT} -f ${DOCKER_FILE}
+
+buildctl --addr tcp://0.0.0.0:1234 build \
+    --frontend dockerfile.v0 --opt filename=${DOCKER_FILE} --local dockerfile=${DOCKER_ROOT} \
+    ${BUILD_ARGS} --local context=${DOCKER_ROOT} \
+    --import-cache type=registry,ref=${REGISTRY_URL}/${REGISTRY_NAMESPACE}/${IMAGE_NAME} \
+    --output type=image,name="${REGISTRY_URL}/${REGISTRY_NAMESPACE}/${IMAGE_NAME}:${IMAGE_TAG}",push=true
 set +x
 
-bx cr image-inspect ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/${IMAGE_NAME}:${IMAGE_TAG}
+ibmcloud cr image-inspect ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/${IMAGE_NAME}:${IMAGE_TAG}
 
 # Set PIPELINE_IMAGE_URL for subsequent jobs in stage (e.g. Vulnerability Advisor)
 export PIPELINE_IMAGE_URL="$REGISTRY_URL/$REGISTRY_NAMESPACE/$IMAGE_NAME:$IMAGE_TAG"
 
-bx cr images --restrict ${REGISTRY_NAMESPACE}/${IMAGE_NAME}
+ibmcloud cr images --restrict ${REGISTRY_NAMESPACE}/${IMAGE_NAME}
 
 ######################################################################################
 # Copy any artifacts that will be needed for deployment and testing to $WORKSPACE    #
